@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction History | Finance Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body class="bg-gray-100">
+    <!-- Navigation -->
+    <nav class="bg-blue-600 p-4 text-white">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold">Finance Tracker</h1>
+            <div class="space-x-4">
+                <a href="index.html" class="hover:underline"><i class="fas fa-home"></i> Dashboard</a>
+                <a href="add.html" class="hover:underline"><i class="fas fa-plus"></i> Add</a>
+                <a href="history.html" class="hover:underline"><i class="fas fa-history"></i> History</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mx-auto p-4">
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h2 class="text-xl font-semibold mb-4">Transaction History</h2>
+            
+            <!-- Filters -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div>
+                    <label class="block text-gray-700 mb-2">Type</label>
+                    <select id="filterType" class="w-full p-2 border rounded">
+                        <option value="">All Types</option>
+                        <option value="income">Income</option>
+                        <option value="expense">Expense</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-gray-700 mb-2">Category</label>
+                    <select id="filterCategory" class="w-full p-2 border rounded">
+                        <option value="">All Categories</option>
+                        <option value="salary">Salary</option>
+                        <option value="freelance">Freelance</option>
+                        <option value="food">Food</option>
+                        <option value="transport">Transport</option>
+                        <option value="housing">Housing</option>
+                        <option value="entertainment">Entertainment</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-gray-700 mb-2">From Date</label>
+                    <input type="date" id="filterFromDate" class="w-full p-2 border rounded">
+                </div>
+                <div>
+                    <label class="block text-gray-700 mb-2">To Date</label>
+                    <input type="date" id="filterToDate" class="w-full p-2 border rounded">
+                </div>
+            </div>
+
+            <!-- Transaction Table -->
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white">
+                    <thead>
+                        <tr class="bg-gray-200">
+                            <th class="py-2 px-4 border">Date</th>
+                            <th class="py-2 px-4 border">Type</th>
+                            <th class="py-2 px-4 border">Category</th>
+                            <th class="py-2 px-4 border">Amount</th>
+                            <th class="py-2 px-4 border">Description</th>
+                            <th class="py-2 px-4 border">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactionsTable">
+                        <!-- Transactions will be inserted here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // Load transactions when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            updateTransactionsTable();
+            
+            // Set up filter event listeners
+            document.getElementById('filterType').addEventListener('change', updateTransactionsTable);
+            document.getElementById('filterCategory').addEventListener('change', updateTransactionsTable);
+            document.getElementById('filterFromDate').addEventListener('change', updateTransactionsTable);
+            document.getElementById('filterToDate').addEventListener('change', updateTransactionsTable);
+        });
+
+        function updateTransactionsTable() {
+            const transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+            const tableBody = document.getElementById('transactionsTable');
+            tableBody.innerHTML = '';
+
+            // Get filter values
+            const typeFilter = document.getElementById('filterType').value;
+            const categoryFilter = document.getElementById('filterCategory').value;
+            const fromDateFilter = document.getElementById('filterFromDate').value;
+            const toDateFilter = document.getElementById('filterToDate').value;
+
+            // Filter transactions
+            const filteredTransactions = transactions.filter(transaction => {
+                const matchesType = !typeFilter || transaction.type === typeFilter;
+                const matchesCategory = !categoryFilter || transaction.category === categoryFilter;
+                const matchesFromDate = !fromDateFilter || new Date(transaction.date) >= new Date(fromDateFilter);
+                const matchesToDate = !toDateFilter || new Date(transaction.date) <= new Date(toDateFilter);
+                
+                return matchesType && matchesCategory && matchesFromDate && matchesToDate;
+            });
+
+            // Sort by date (newest first)
+            filteredTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            // Populate table
+            filteredTransactions.forEach(transaction => {
+                const row = document.createElement('tr');
+                row.className = 'border-b hover:bg-gray-50';
+                
+                const typeClass = transaction.type === 'income' ? 'text-green-600' : 'text-red-600';
+                const typeText = transaction.type === 'income' ? 'Income' : 'Expense';
+
+                row.innerHTML = `
+                    <td class="py-2 px-4 border">${new Date(transaction.date).toLocaleDateString()}</td>
+                    <td class="py-2 px-4 border ${typeClass}">${typeText}</td>
+                    <td class="py-2 px-4 border">${transaction.category || '-'}</td>
+                    <td class="py-2 px-4 border ${typeClass}">₹${transaction.amount.toFixed(2)}</td>
+                    <td class="py-2 px-4 border">${transaction.description || '-'}</td>
+                    <td class="py-2 px-4 border">
+                        <button onclick="deleteTransaction(₹${transaction.id})" class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+        }
+
+        function deleteTransaction(id) {
+            if (confirm('Are you sure you want to delete this transaction?')) {
+                let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+                transactions = transactions.filter(t => t.id !== id);
+                localStorage.setItem('transactions', JSON.stringify(transactions));
+                updateTransactionsTable();
+            }
+        }
+    </script>
+</body>
+</html>
